@@ -37,8 +37,22 @@ Friedewald holds exactly: TC 111.2 = HDL 49 + LDL 50 + VLDL 12.2, and
 VLDL 12.2 = Trig 61 ÷ 5. **LDL-C is calculated, not directly measured** — which
 matters for reading the LDL-C:ApoB ratio at this low a cholesterol.
 
-## Missing context needed for full interpretation
-- **Cycle day** at draw (estradiol and FSH are uninterpretable without it)
-- **Draw time** for the morning cortisol (a 10am draw is not a 7:30am draw)
+## Draw context (supplied 27 Aug 2026)
+- **Cortisol drawn 9:00am** — inside the conventional 7–9am window, so the 6.6
+  should be read as probably real rather than a timing artifact. Wake time still
+  unknown, and it is the variable that would refine this.
+- **Cycle day −1.** Period began Tue 18 Aug 2026, the day after the draw — the
+  final day of the luteal phase.
+  - FSH 3.07 is physiologically suppressed in the luteal phase and **cannot** be
+    used to assess ovarian reserve. Needs a day-3 draw.
+  - Estradiol 66.8 is unremarkable for day −1.
+  - Ferritin 21.1 is a pre-menstrual value; the post-period nadir is likely lower.
+  - Total cholesterol and HDL sit near their cycle low (TC ~3% / LDL-C ~5% lower
+    mid-luteal than mid-follicular) — a 3–5% correction on a ~50 mg/dL gap.
+  - Ferritin, cystatin C, vitamin D, TSH, homocysteine, HbA1c: unaffected.
+
+## Still missing
+- **Wake time** on the day of the draw
+- **Progesterone** — never measured; needs a mid-luteal draw (~7–8 Sept)
 - Fasting status; recent illness, training load, NSAID or steroid use
 - Current medications and supplements

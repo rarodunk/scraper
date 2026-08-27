@@ -8,6 +8,24 @@
 > buried. Nothing here replaces a workup, and nothing here should change a
 > prescribed medication.
 
+## Draw context — added after the first version of this report
+
+**Cortisol was drawn at 9:00am. Her period began Tuesday 18 August — the day
+after the draw.** Both facts change how three markers read, and one of them
+corrects something the first version of this report got wrong.
+
+| | Then | Now |
+|---|---|---|
+| **Cortisol 6.6** | "Probably a timing artifact — recheck it" | 9am *is* inside the standard morning window. **More likely a real finding than I first allowed.** |
+| **FSH 3.07** | "Rules out perimenopause" | **Wrong.** A luteal-phase FSH is physiologically suppressed and cannot assess ovarian reserve. Needs a day-3 draw. |
+| **Cholesterol 111.2** | Low | Still low. Cycle timing explains about 3–5% of it, not the 50-point gap. |
+
+The draw landed on **cycle day −1** — the last day of the luteal phase,
+immediately premenstrual. That is a meaningful place to have drawn blood, and it
+sharpens several readings below. **Ferritin, cystatin C, vitamin D, TSH and
+homocysteine are unaffected by cycle timing — every one of those findings
+stands.**
+
 ---
 
 ## The one-paragraph version
@@ -37,7 +55,7 @@ below is designed to *protect* it.
 | **Triglycerides 61 mg/dL** | Optimal (40–70) | Metabolically healthy. |
 | **ApoB:ApoA1 0.44** | Optimal (<0.7) | Favorable balance of harmful to protective particles. |
 | **Total Chol:HDL 2.27** | Optimal (<3.5) | Low risk. |
-| **FSH 3.07 mIU/mL** | Premenopausal | Ovarian function looks intact. This is not perimenopause. |
+| **Regular ovulatory cycle** | Day −1 at draw | You had a luteal phase and then a period on schedule — that pattern itself suggests you are ovulating, which is a genuinely good sign. (The FSH *number* can't be used here — see below.) |
 
 **A quiet bonus:** iron deficiency normally makes HbA1c read *falsely high*,
 because it lengthens red-cell lifespan and older cells accumulate more sugar. So
@@ -252,6 +270,17 @@ every second dose lands on a closed door. **More is genuinely worse here.**
 Repletion is slow: expect 8–12 weeks per retest, and **6–12 months to go from 21
 to 70+.** That is normal. Do not judge it at week four.
 
+> **One more thing now that the cycle timing is known, and it is not good news.**
+> This 21.1 was measured **the day before your period started** — so it is a
+> *pre-menstrual* value, taken before you lost another cycle's worth of blood.
+> **Your true low point, in the days after a period, is very likely below 21.**
+> Iron stores fall to their annual nadir right after menstruation.
+>
+> This does not change the plan, but it does raise the urgency, and it means one
+> thing for the retest: **draw ferritin at a consistent point in your cycle** —
+> ideally mid-to-late follicular, about 7–10 days after bleeding stops — so you
+> are comparing like with like rather than chasing cycle noise.
+
 ### Total Cholesterol 111.2 (optimal 160–200) & HDL 49 (optimal 80–100)
 
 Modern medicine only watches the ceiling on cholesterol. **The floor matters too**,
@@ -268,20 +297,53 @@ bakery for bread with no flour.
 Your 111 breaks down as HDL 49 + LDL 50 + VLDL 12. Both HDL and LDL are low, and
 **HDL 49 is under the 50 threshold conventionally used for women.**
 
+**Does the cycle timing rescue this number? Barely.** Total cholesterol and LDL-C
+run highest in the follicular phase and decline into the luteal phase — total
+cholesterol by about **3%**, LDL-C by about **5%**, from mid-follicular to
+mid-luteal. Your draw was late luteal, so this 111.2 is sitting near your cycle
+*low*. Adjusted to a follicular-phase equivalent it might read around 115.
+
+**That is a 3–5% correction against a roughly 50-point gap to optimal.** The
+finding stands essentially untouched. (HDL peaks around ovulation, so your 49 is
+also near a cycle low — same small effect, same conclusion.)
+
 **Fix with fat, not with a statin conversation** — pastured egg yolks, extra-virgin
 olive oil, butter or ghee, avocado, fatty fish, nuts. And **support bile at the
 same time**, or the fat you add will not be absorbed.
 
 ### Morning Cortisol — 6.6 µg/dL (optimal 10–15, good floor 6.7)
 
-**Before anything else: what time was this drawn?** Cortisol should peak 30–45
-minutes after waking and fall all day. A draw at 10am is not comparable to one at
-7:30am — the value can halve. **Many "low cortisol" results are timing artifacts.**
-If it was drawn late, repeat it at 7–8am before treating it as real.
+**Updated now that I know it was drawn at 9:00am — and this makes it *more*
+concerning, not less.**
 
-If it is real, the drivers are the ones already on this page: under-fuelling, thin
-cholesterol substrate, sleep debt, circadian disruption, overtraining, and
-sustained stress. Nothing is broken — the system is defending itself.
+In the first version of this report I leaned on timing as the likely explanation.
+That excuse is now mostly gone. **9am sits inside the conventional 7–9am morning
+window** that reference ranges are built on — the standard serum range for that
+window is roughly 6–22 µg/dL. Your 6.6 is not outside it, but it is scraping the
+very bottom of it, and just under your lab's own "good" floor of 6.7.
+
+So: **treat this as a real, if borderline, finding rather than an artifact.**
+
+**One variable still genuinely matters — what time do you wake up?** Cortisol
+peaks 30–45 minutes after *waking*, not at a fixed clock time, rising 50–160%
+above the sleeping baseline before declining through the day.
+
+- **If you wake around 5:30–6am**, 9am is three hours past your peak, and 6.6 is
+  considerably more forgivable.
+- **If you wake around 8am**, 9am is essentially *at* your peak — and 6.6 as a
+  peak value is genuinely low, and the most important thing on this panel after
+  the ferritin.
+
+That single answer changes the interpretation more than any other missing detail,
+so it is worth pinning down before the recheck.
+
+A smaller note: cortisol tends to run equal or slightly *higher* in the luteal
+phase, and this was drawn on the last luteal day — so the phase was not working
+in the direction of a falsely low result.
+
+The drivers are the ones already on this page: under-fuelling, thin cholesterol
+substrate, sleep debt, circadian disruption, overtraining, and sustained stress.
+Nothing is broken — the system is defending itself.
 
 **The highest-return intervention costs nothing: 10–20 minutes of daylight on
 your eyes within an hour of waking, without sunglasses.** That single input anchors
@@ -362,15 +424,50 @@ packed.**
 If it confirms small particles, the corrections are omega-3s, less refined
 carbohydrate, resistance training, and adequate thyroid — all already in your plan.
 
-### Estradiol 66.8 & FSH 3.07 — need your cycle day
+### Estradiol 66.8 & FSH 3.07 — now interpretable, and I need to correct myself
 
-These are uninterpretable without knowing where you were in your cycle. Estradiol
-swings from about 30 pg/mL early in the cycle to 200–400 at ovulation. What the
-pair *does* tell you: **FSH 3.07 is solidly premenopausal.** This is not
-perimenopause, and your ovarian function looks intact.
+Your period started **Tuesday 18 August, the day after the 17 August draw.** That
+puts the blood draw on **cycle day −1** — the final day of the luteal phase.
 
-**Record the cycle day on every future draw**, and aim for day 3 for a comparable
-baseline.
+**The correction.** I previously wrote that FSH 3.07 "rules out perimenopause."
+**That was wrong, and I should not have said it.** During the luteal phase, FSH is
+*physiologically suppressed* by progesterone and inhibin A from the corpus luteum
+— it is supposed to be low then. A low luteal FSH is the expected result in a
+perfectly normal cycle, and it carries **no information at all** about ovarian
+reserve. You cannot rule perimenopause in or out from this number.
+
+**To actually assess that you need a day-3 FSH**, drawn on the third day of a
+period, when FSH is unsuppressed. Nothing here suggests you should be worried —
+a normal luteal phase followed by an on-time period is itself a reassuring sign
+that you are ovulating — but the specific claim I made was not supported.
+
+**Estradiol 66.8 is unremarkable for cycle day −1.** Estradiol has a secondary
+rise mid-luteal and then falls as the corpus luteum regresses premenstrually.
+66.8 the day before bleeding is a normal, expected value. It also means this
+number tells you nothing about your follicular-phase estrogen.
+
+### The test they should have run: mid-luteal progesterone
+
+Progesterone is missing from this panel, and for you it is the more informative
+hormone of the two.
+
+**Why it matters here specifically:** progesterone is built from pregnenolone —
+**the same cholesterol-derived precursor pool that makes your cortisol.** With
+total cholesterol at 111 and morning cortisol at 6.6, progesterone is the obvious
+third member of that group to check. Under-fuelling and low thyroid function both
+suppress it as well. And it is the cleanest confirmation that you are actually
+ovulating rather than just bleeding.
+
+**Timing is everything, and day −1 was too late.** The right window is
+**mid-luteal — roughly 7 days after ovulation, or about 7 days before the period
+is due.** By day −1 progesterone is already falling as the corpus luteum breaks
+down, so even a low value would be hard to read. They drew close to the right
+phase, but past the useful point in it.
+
+**For your current cycle (day 1 = 18 Aug), the mid-luteal window is approximately
+7–8 September**, assuming a ~28-day cycle — shift it if yours runs shorter or
+longer. Ask for **progesterone**, and it is worth adding **free T3 and free T4**
+on the same draw.
 
 ### Triglycerides:HDL — 1.24 (optimal <1.1)
 
@@ -705,9 +802,29 @@ will only be discouraging. **Week 12** — with one exception below.
 | **HDL** | 49 | **Above 60** |
 | **Morning cortisol** | 6.6 | **10–15**, drawn 7–8am |
 | **Cystatin C** | 1.17 | **Under 1.0** — but test this *now*, not in 12 weeks |
+| **Progesterone** | not tested | Draw **mid-luteal**, ~7 days before the period is due |
+| **FSH (day 3)** | not validly tested | Draw on **day 3 of a period** — the luteal 3.07 doesn't count |
 
 **Also add, and record every time:** full iron panel, CBC, free T3 and free T4,
 and **the cycle day and the draw time**.
+
+### Now that the cycle is known, time the redraws properly
+
+Half of these markers move with the cycle, and comparing a luteal draw to a
+follicular one will manufacture changes that aren't real. Working from **day 1 =
+18 August**, and assuming roughly 28 days (adjust to your actual length):
+
+| Test | When | Approximate date |
+|---|---|---|
+| **Cystatin C, creatinine, urine ACR, thyroid panel** | Now — cycle-independent | **This week** |
+| **Mid-luteal progesterone** (+ free T3/T4) | ~7 days before period due | **~7–8 Sept** |
+| **Day-3 FSH, LH, estradiol** | Day 3 of next period | **~17 Sept** |
+| **Ferritin + full iron panel** | Mid-to-late follicular, 7–10 days after bleeding stops | Same visit as the 12-week panel, held to this phase every time |
+| **Full 12-week retest** | Mid-follicular for comparability | **Mid-November** |
+
+**Draw cortisol at 7:30–8:00am, within 30–60 minutes of waking**, not at 9am —
+and write down what time you woke. That is the single change that will make the
+repeat interpretable.
 
 **If a number has not moved at 12 weeks, the answer is almost never "take more."**
 It is that absorption is still blocked, or the root cause is still unaddressed.
@@ -742,10 +859,18 @@ Hand this section over. It is written to be read by a clinician.
 **Supporting:**
 7. **B12, serum folate, and methylmalonic acid (MMA)** — MMA is more sensitive than
    serum B12 for true tissue deficiency.
-8. **Repeat morning cortisol at 7–8am**, or a 4-point salivary cortisol curve. If
-   genuinely low, discuss whether an **ACTH stimulation test** is warranted to rule
-   out adrenal insufficiency.
+8. **Repeat morning cortisol at 7:30–8am, within 30–60 min of waking** — the
+   original was drawn at 9am, inside the standard window, so the 6.6 should be
+   treated as probably real. Note the wake time on the requisition. A 4-point
+   salivary or DUTCH curve is better still because it is anchored to waking. If
+   confirmed low, discuss whether an **ACTH stimulation test** is warranted.
 9. **Direct LDL or NMR LipoProfile** — to resolve the calculated LDL-C:ApoB ratio.
+10. **Mid-luteal progesterone (~7 days before the period is due, roughly 7–8
+    Sept)** — to confirm ovulation and to check the third hormone downstream of
+    the same cholesterol-derived precursor pool as cortisol.
+11. **Day-3 FSH, LH and estradiol on the next period (~17 Sept).** The 17 August
+    FSH of 3.07 was drawn on cycle day −1, when FSH is physiologically suppressed,
+    and cannot be used to assess ovarian reserve.
 
 **Also mention:** any NSAID or steroid use, all current supplements, training load,
 and whether you have been eating at a deficit.
@@ -770,6 +895,9 @@ Five things. Not thirty. The rest builds on these.
 
 **Then in week 2:** start iron (alternate mornings, with vitamin C), vitamin D
 with K2 and magnesium, and bitters before meals.
+
+**And write down two things this week, because they decide how two of these
+numbers get read:** what time you wake up, and the first day of your next period.
 
 ---
 
