@@ -10,8 +10,8 @@
 
 ## Draw context — added after the first version of this report
 
-**Cortisol was drawn at 9:00am. Her period began Tuesday 18 August — the day
-after the draw.** Both facts change how three markers read, and one of them
+**Cortisol was drawn at 9:00am, she wakes at 6:30–7:00am, and her period began
+Tuesday 18 August — the day after the draw.** Both facts change how three markers read, and one of them
 corrects something the first version of this report got wrong.
 
 | | Then | Now |
@@ -313,37 +313,26 @@ same time**, or the fat you add will not be absorbed.
 
 ### Morning Cortisol — 6.6 µg/dL (optimal 10–15, good floor 6.7)
 
-**Updated now that I know it was drawn at 9:00am — and this makes it *more*
-concerning, not less.**
+**Updated again — wake time is 6:30–7:00am, and this settles it as a mild finding.**
 
-In the first version of this report I leaned on timing as the likely explanation.
-That excuse is now mostly gone. **9am sits inside the conventional 7–9am morning
-window** that reference ranges are built on — the standard serum range for that
-window is roughly 6–22 µg/dL. Your 6.6 is not outside it, but it is scraping the
-very bottom of it, and just under your lab's own "good" floor of 6.7.
+Her cortisol awakening peak would land roughly **7:00–7:45am**. The 9:00am draw is
+therefore **about 1.5–2 hours past peak, on the declining limb** — not at peak, and
+not absurdly late either.
 
-So: **treat this as a real, if borderline, finding rather than an artifact.**
+Interpolating the normal morning decline, a 6.6 at 9am is consistent with a true
+peak somewhere around **8–10 µg/dL**. That sits at or just under the bottom of
+optimal (10–15) and comfortably inside the "good" range (6.7–19.4).
 
-**One variable still genuinely matters — what time do you wake up?** Cortisol
-peaks 30–45 minutes after *waking*, not at a fixed clock time, rising 50–160%
-above the sleeping baseline before declining through the day.
+**So: mild blunting at worst, not a red flag.** This drops well down the priority
+list — behind ferritin, cholesterol, vitamin D and the cystatin C. It is worth a
+properly timed recheck, but it is no longer one of the headline findings.
 
-- **If you wake around 5:30–6am**, 9am is three hours past your peak, and 6.6 is
-  considerably more forgivable.
-- **If you wake around 8am**, 9am is essentially *at* your peak — and 6.6 as a
-  peak value is genuinely low, and the most important thing on this panel after
-  the ferritin.
+*Stated honestly: that 8–10 estimate is an interpolation from typical decline
+rates, not a measurement. Individual decline rates vary. A single draw at
+7:30–8:00am, within 30–60 minutes of waking, settles it properly.*
 
-That single answer changes the interpretation more than any other missing detail,
-so it is worth pinning down before the recheck.
-
-A smaller note: cortisol tends to run equal or slightly *higher* in the luteal
-phase, and this was drawn on the last luteal day — so the phase was not working
-in the direction of a falsely low result.
-
-The drivers are the ones already on this page: under-fuelling, thin cholesterol
-substrate, sleep debt, circadian disruption, overtraining, and sustained stress.
-Nothing is broken — the system is defending itself.
+The drivers, if it does read low on the recheck, are the ones already on this page:
+under-fuelling, thin cholesterol substrate, sleep debt, and training load.
 
 **The highest-return intervention costs nothing: 10–20 minutes of daylight on
 your eyes within an hour of waking, without sunglasses.** That single input anchors
