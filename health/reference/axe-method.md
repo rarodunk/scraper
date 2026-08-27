@@ -267,3 +267,56 @@ person wins.** Adapt on these rules:
 5. **Retest before escalating.** Eight to twelve weeks for most markers. If a
    number has not moved, the answer is almost never "take more" — it is
    "absorption is still blocked" or "the root cause is still unaddressed."
+
+---
+
+# Part IV — The Superfood List (from *Superfood Super You*)
+
+Axe's 20-superfood ebook, organised into four tracks: **Weight Loss, Detox,
+Anti-Aging, Muscle Building**. His stated principle is that superfoods work as a
+team, not individually, and that Americans are "overfed but undernourished" —
+count nutrients, not calories.
+
+**The 20:** low-TDS water · cultured dairy (amasai, kefir) · kale · berries
+(blue, rasp, amla) · chia and flaxseed · broccoli · wild salmon · African mango ·
+pastured eggs · algae (green, brown, blue-green) · raw green-fed cheese ·
+avocado · cinnamon · coconut · green-fed beef · garlic · turmeric · fermented
+whey · cocoa · almonds.
+
+**"Green-fed" vs "grass-fed"** is his own distinction: grass-fed cattle need only
+eat grass 30% of the year; green-fed eat grass, herbs and legumes year-round.
+
+## The ones that matter for a depletion/low-lipid panel
+
+| Superfood | Why it earns its place here |
+|---|---|
+| **Amla (Indian gooseberry)** | Axe lists it as a berry that "increases red blood cell production" — independently confirming the classical Ayurvedic amla-with-iron pairing. Vitamin C dense and heat-stable. |
+| **Green-fed beef** | More zinc and B12 than grain-fed, plus heme iron, higher omega-3, A and E |
+| **Pastured eggs** | One of the few real food sources of vitamin D; up to 20× the omega-3 of factory eggs. Cholesterol substrate. |
+| **Wild salmon** | ~1,400 mg omega-3 per 4 oz; astaxanthin; vitamins A, D, B6, iron. Wild sockeye, never farmed. |
+| **Avocado** | Axe cites it raising **HDL** and acting as a "nutrient booster" — it increases absorption of fat-soluble nutrients from the rest of the meal |
+| **Almonds** | Lowers LDL, raises HDL; arginine |
+| **Cultured dairy** | Probiotics, whey protein, K2, D3, CLA, B-vitamins |
+| **Coconut / MCTs** | Makes omega-3s roughly twice as available when eaten together |
+| **Turmeric, broccoli, garlic, kale, berries, cocoa** | Antioxidant and anti-inflammatory base |
+
+## "Your Enemies" — his removal list
+
+Hydrogenated and industrial oils (**corn, soybean, cottonseed, canola**) ·
+artificial sweeteners (sucralose, aspartame) and MSG · processed grains and
+sugar · conventional meat and pasteurised dairy. **This maps almost exactly onto
+the Month 1 removals** — treat it as convergent, not as a second list.
+
+Also: low-TDS spring water, and glass or steel over BPA-containing plastic.
+
+## Use with judgement — three filters
+
+1. **Skip African mango / Irvingia.** The weight-loss claims quoted from it are
+   far stronger than the evidence supports, and it is irrelevant to a depletion
+   panel.
+2. **The ebook's tone is promotional and some claims are single-study or
+   overstated.** Take the food list, which is sound; leave the superlatives.
+3. **His burst-training protocol** (20–60 s at 80–100% effort, 15 min) is
+   explicitly **contraindicated** for someone with low ferritin and low morning
+   cortisol. Substitute strength work and walking until those recover — and say
+   so, since the reader may have seen the ebook's version.
