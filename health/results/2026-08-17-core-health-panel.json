@@ -1,0 +1,421 @@
+[
+  {
+    "section": "Energy & Metabolism",
+    "name": "Cystatin C",
+    "unit": "mg/L",
+    "value": 1.17,
+    "ranges": {
+      "optimal": [
+        0.55,
+        0.9
+      ],
+      "good": [
+        0.53,
+        1.01
+      ],
+      "fair": [
+        0.0,
+        1.01
+      ]
+    },
+    "status": "RED_HIGH"
+  },
+  {
+    "section": "Energy & Metabolism",
+    "name": "Thyroid Stimulating Hormone (TSH)",
+    "unit": "uIU/mL",
+    "value": 2.78,
+    "ranges": {
+      "optimal": [
+        1.0,
+        2.0
+      ],
+      "good": [
+        0.45,
+        5.33
+      ]
+    },
+    "status": "AMBER"
+  },
+  {
+    "section": "Energy & Metabolism",
+    "name": "% Hemoglobin A1C",
+    "unit": "%",
+    "value": 4.6,
+    "ranges": {
+      "optimal": [
+        3.8,
+        5.0
+      ],
+      "good": [
+        3.8,
+        5.4
+      ],
+      "fair": [
+        3.8,
+        5.7
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Energy & Metabolism",
+    "name": "Estim. Avg Glu (eAG)",
+    "unit": "mg/dL",
+    "value": 84.0,
+    "ranges": {
+      "optimal": [
+        70.0,
+        97.0
+      ],
+      "good": [
+        70.0,
+        108.0
+      ],
+      "fair": [
+        70.0,
+        126.0
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Energy & Metabolism",
+    "name": "Morning Cortisol",
+    "unit": "ug/dL",
+    "value": 6.6,
+    "ranges": {
+      "optimal": [
+        10.0,
+        15.0
+      ],
+      "good": [
+        6.7,
+        19.4
+      ]
+    },
+    "status": "RED_LOW"
+  },
+  {
+    "section": "Energy & Metabolism",
+    "name": "Triglycerides:HDL Ratio",
+    "unit": null,
+    "value": 1.24,
+    "ranges": {
+      "optimal": [
+        0.0,
+        1.1
+      ],
+      "good": [
+        0.0,
+        1.5
+      ],
+      "fair": [
+        0.0,
+        2.5
+      ]
+    },
+    "status": "AMBER"
+  },
+  {
+    "section": "Heart Health",
+    "name": "Calculated LDL-Cholesterol",
+    "unit": "mg/dL",
+    "value": 50.0,
+    "ranges": {
+      "optimal": [
+        40.0,
+        90.0
+      ],
+      "good": [
+        40.0,
+        120.0
+      ],
+      "fair": [
+        40.0,
+        130.0
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Heart Health",
+    "name": "Cholesterol, Total",
+    "unit": "mg/dL",
+    "value": 111.2,
+    "ranges": {
+      "optimal": [
+        160.0,
+        200.0
+      ],
+      "good": [
+        125.0,
+        200.0
+      ],
+      "fair": [
+        100.0,
+        200.0
+      ]
+    },
+    "status": "AMBER"
+  },
+  {
+    "section": "Inflammation & Immune Defense",
+    "name": "High-Sensitivity CRP",
+    "unit": "mg/L",
+    "value": 0.24,
+    "ranges": {
+      "optimal": [
+        0.0,
+        1.0
+      ],
+      "good": [
+        0.0,
+        1.5
+      ],
+      "fair": [
+        0.0,
+        2.5
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Inflammation & Immune Defense",
+    "name": "Homocysteine (HCY)",
+    "unit": "umol/L",
+    "value": 8.13,
+    "ranges": {
+      "optimal": [
+        5.0,
+        7.0
+      ],
+      "good": [
+        5.0,
+        9.0
+      ],
+      "fair": [
+        5.0,
+        11.0
+      ]
+    },
+    "status": "AMBER"
+  },
+  {
+    "section": "Hormonal Communication",
+    "name": "Estradiol (Sensitive)",
+    "unit": "pg/mL",
+    "value": 66.8,
+    "ranges": {
+      "good": [
+        0.0,
+        517.0
+      ]
+    },
+    "status": "AMBER"
+  },
+  {
+    "section": "Hormonal Communication",
+    "name": "Follicle-Stimulating Hormone (FSH)",
+    "unit": "mIU/mL",
+    "value": 3.07,
+    "ranges": {
+      "good": [
+        1.79,
+        113.59
+      ]
+    },
+    "status": "AMBER"
+  },
+  {
+    "section": "Nutrition & Building Blocks",
+    "name": "25-(OH) Vitamin D",
+    "unit": "ng/mL",
+    "value": 42.85,
+    "ranges": {
+      "optimal": [
+        50.0,
+        80.0
+      ]
+    },
+    "status": "RED_LOW"
+  },
+  {
+    "section": "Nutrition & Building Blocks",
+    "name": "Ferritin",
+    "unit": "ng/mL",
+    "value": 21.1,
+    "ranges": {
+      "optimal": [
+        70.0,
+        90.0
+      ]
+    },
+    "status": "RED_LOW"
+  },
+  {
+    "section": "Cardiovascular Resilience",
+    "name": "HDL Cholesterol",
+    "unit": "mg/dL",
+    "value": 49.0,
+    "ranges": {
+      "optimal": [
+        80.0,
+        100.0
+      ],
+      "good": [
+        60.0,
+        100.0
+      ],
+      "fair": [
+        40.0,
+        100.0
+      ]
+    },
+    "status": "AMBER"
+  },
+  {
+    "section": "Cardiovascular Resilience",
+    "name": "Triglycerides",
+    "unit": "mg/dL",
+    "value": 61.0,
+    "ranges": {
+      "optimal": [
+        40.0,
+        70.0
+      ],
+      "good": [
+        30.0,
+        90.0
+      ],
+      "fair": [
+        30.0,
+        130.0
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Cardiovascular Resilience",
+    "name": "Apolipoprotein A1 (APOA1)",
+    "unit": "mg/dL",
+    "value": 134.0,
+    "ranges": {
+      "optimal": [
+        125.0,
+        200.0
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Cardiovascular Resilience",
+    "name": "Apolipoprotein B (APOB)",
+    "unit": "mg/dL",
+    "value": 59.0,
+    "ranges": {
+      "optimal": [
+        50.0,
+        70.0
+      ],
+      "good": [
+        50.0,
+        90.0
+      ],
+      "fair": [
+        50.0,
+        110.0
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Cardiovascular Resilience",
+    "name": "LDL-C:HDL-C Ratio",
+    "unit": "ratio",
+    "value": 1.0,
+    "ranges": {
+      "optimal": [
+        0.0,
+        2.5
+      ],
+      "good": [
+        0.0,
+        3.3
+      ],
+      "fair": [
+        0.0,
+        5.0
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Cardiovascular Resilience",
+    "name": "ApoB:ApoA1 Ratio",
+    "unit": null,
+    "value": 0.44,
+    "ranges": {
+      "optimal": [
+        0.0,
+        0.7
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Cardiovascular Resilience",
+    "name": "VLDL Cholesterol (Calc)",
+    "unit": "mg/dL",
+    "value": 12.2,
+    "ranges": {
+      "optimal": [
+        5.0,
+        15.0
+      ],
+      "good": [
+        5.0,
+        25.0
+      ],
+      "fair": [
+        0.0,
+        30.0
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Cardiovascular Resilience",
+    "name": "Total Cholesterol:HDL Ratio",
+    "unit": null,
+    "value": 2.27,
+    "ranges": {
+      "optimal": [
+        0.0,
+        3.5
+      ]
+    },
+    "status": "GREEN"
+  },
+  {
+    "section": "Cardiovascular Resilience",
+    "name": "LDL-C:ApoB Ratio",
+    "unit": null,
+    "value": 0.85,
+    "ranges": {
+      "optimal": [
+        1.5,
+        2.0
+      ],
+      "good": [
+        1.3,
+        2.0
+      ],
+      "fair": [
+        1.2,
+        2.0
+      ]
+    },
+    "status": "RED_LOW"
+  }
+]
