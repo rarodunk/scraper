@@ -11,3 +11,6 @@ fonts/
 *.pdf
 card.html
 __pycache__/
+# Card transcriptions and the labels generated from them spell out the card's full text: local only.
+labels/card_text.txt
+labels/card_labels.txt

@@ -48,6 +48,40 @@ ink component (`c<x0>`), because joined handwriting cannot be segmented automati
 reliability. `labels/journal_labels.txt` is the reviewed label set behind the current font (about
 255 samples from 8 photos); it holds only photo ids and coordinates.
 
+## Cards and other unruled pages (auto-labelled)
+
+Neat writing on plain card stock is the best source, and it needs no hand labelling: you type
+what each line says and `hwfont.align` matches the text to the ink.
+
+    # labels/photos.json: rotation for photos taken sideways, "source": "card"
+    python -m hwfont.extract index <photo_id>              # detected lines and their R-ids
+    # labels/card_text.txt:  <photo_id> R<n>: <the text of that line>
+    python -m hwfont.align labels/card_text.txt labels/card_labels.txt
+    python -m hwfont.extract extract labels/card_labels.txt build/cards     # review contact.png
+    # bad matches go in labels/card_rejects.txt (same syntax); align leaves them out next run
+
+Pages with fewer than 8 printed rules are treated as unruled. Lines are found by painting each
+word's x-height band and smearing it sideways (words on one line fuse, neighbouring lines don't),
+refined by fitting and reassigning; the baseline is shifted to the most common bottom level so
+arches and crossbars don't lift it. Alignment is dynamic programming over components vs
+characters with height, width, shape and word-gap costs (see `hwfont/align.py`); joined letters
+are split at their thinnest connector. Vertical bands and widths are learned from the page in a
+first pass. On the two cards: about 690 matched components, 774 letter labels.
+
+`card_text.txt` and `card_labels.txt` spell out the card's text, so they are gitignored and stay
+on your machine with the photos.
+
+## Benchmark
+
+    python -m hwfont.benchmark build/cards/glyphs.npy build/v2.otf build/MyHand.otf -o build/benchmark
+    python tools/side_by_side.py <photo_id> <R> "<text>" build/cmp.png build/v2.otf build/MyHand.otf
+
+Measures stroke weight (half-maximum width of the photographed ink), slant, ascender, capital,
+digit and descender heights, letter widths and word spacing, all in x-heights, for the reference
+cards and each font; plus a per-letter likeness score (centerline chamfer distance in a shared
+x-height frame, so size and proportion count). Font metrics in `build_font.py` are calibrated to
+the card numbers.
+
 ## Font build
 
 `build_font` turns labelled samples into glyphs in four steps.
@@ -62,13 +96,20 @@ photos produce the same weight. Joining strokes that run sideways out of a lette
 trimmed (otherwise "see" sets as "s-e-e"), and each glyph's lean is moved 65% of the way toward
 the median slant of the whole hand. `--raw` skips all of this and traces the ink as photographed.
 
+Sample choice. Samples come from three tiers, template > card > journal; a letter uses the
+most deliberate tier that has a legible sample. Within a tier, letters cut out of joined words
+rank below whole ink components, an i or j without its dot is never used when a dotted one
+exists, and samples with implausible height for their letter (slivers) or a missing second mark
+(" : ;) are dropped.
+
 Legibility filter (`hwfont/legibility.py`). Fast writing collapses letters (an e becomes "<"), and
 the collapsed form is often the most common one, so samples are ranked by how much their
 centerline looks like the intended letter in a few reference typefaces (symmetric chamfer
 distance, lower is better). Only samples scoring at or under `LEGIBLE_MAX` (4.2) are used, best
 first. A letter with no passing sample is drawn instead, in the writer's slant and pen width;
-`FORCE_DRAWN` lists letters drawn even when samples pass (currently m, which this hand writes as
-a wave that reads as "w" in running text). `legibility.json` records each used sample's score.
+Each sample must also look more like itself than like its usual confusions (n/r/u, a/u/o, e/c,
+h/n/b, i/l). `FORCE_DRAWN` (m, journal only: the fast m reads as "w") and `ALWAYS_DRAWN` (n: the
+card n carries an entry tick that reads as r in running text) are explicit, auditable exceptions. `legibility.json` records each used sample's score.
 
 Gaps. Characters with no sample are filled from your own glyphs where possible (a lowered P
 becomes p, your a plus a stem becomes q and g, scaled lowercase becomes a missing capital), and
@@ -100,8 +141,11 @@ a system font and are listed under the preview.
     hwfont/build_font.py      normalisation, sample selection, tracing, fallbacks, alternates, OpenType
     hwfont/tidy.py            centerline extraction, spur pruning, connector trimming, re-stroking
     hwfont/legibility.py      reads-as-letter score against reference typefaces
+    hwfont/align.py           auto-labelling from a transcription (unruled pages, cards)
+    hwfont/benchmark.py       style metrics and per-letter likeness against reference handwriting
     hwfont/template.py        template PDF and photo ingestion
     hwfont/make_card_tool.py  bakes a font into hwfont/card_tool.html
     tests/test_template_roundtrip.py   fills a template with a font, fakes a skewed photo, ingests
     tools/preview.js, tools/test_card.js   Playwright renders for visual checks
     tools/specimen.py         every form of every character with the sample it came from
+    tools/side_by_side.py     a real line from a photo above the same text set in each font

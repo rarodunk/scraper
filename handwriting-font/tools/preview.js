@@ -8,11 +8,11 @@ const fs = require('fs');
   const html = `<html><head><style>
     @font-face { font-family: H; src: url(data:font/otf;base64,${b64}); }
     body { margin: 24px; background: #fffdf7; }
-    p { font-family: H, monospace; font-size: 56px; margin: 6px 0; color: #1d2a5c; line-height: 1.35; }
+    p { font-family: H, monospace; font-size: ${process.env.FS || 56}px; margin: 6px 0; color: #1d2a5c; line-height: 1.35; }
     .grid { background: repeating-linear-gradient(#fffdf7 0 74px, #dde 74px 75px); }
   </style></head><body>${lines.map(l => `<p>${l}</p>`).join('')}</body></html>`;
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1400, height: 200 }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: +(process.env.VW || 1400), height: 200 }, deviceScaleFactor: 1 });
   await page.setContent(html);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: out, fullPage: true });

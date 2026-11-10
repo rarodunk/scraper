@@ -133,8 +133,14 @@ def smooth(p: np.ndarray, win: int) -> np.ndarray:
 
 
 def centerline(ink: np.ndarray, pen_px: float) -> list[np.ndarray]:
-    """Pruned centerline strokes of a glyph bitmap."""
-    return prune(strokes(ink), ink, 1.6 * pen_px)
+    """Pruned centerline strokes of a glyph bitmap.
+
+    Spurs are judged against the ink's own stroke width, not the output pen: skeleton spurs from
+    blobby ink are about one stroke long, while real short strokes (t/f crossbars, I serifs) are
+    longer than that even when the output pen is bold."""
+    from .build_font import stroke_width_px
+    own = stroke_width_px(ink > 0) or pen_px
+    return prune(strokes(ink), ink, 1.2 * min(own, pen_px))
 
 
 def slant(paths: list[np.ndarray], step: int = 6) -> tuple[float, float]:

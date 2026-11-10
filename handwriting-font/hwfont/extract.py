@@ -9,7 +9,7 @@ from NAMED (for characters that clash with the syntax).
 Commands (run as `python -m hwfont.extract ...`, with HWFONT_PHOTOS pointing at the photos):
     index   <image_id>                                       -> index_<image_id>.png (every line + R-id)
     zoom    <image_id> <rid> <x0> <x1> [<rid> <x0> <x1> ...]  -> zoom_<image_id>.png (component x-ranges)
-    extract <labels.txt> <out_dir>                           -> glyphs.npy + contact.png for review
+    extract <labels.txt> [<labels.txt> ...] <out_dir>         -> glyphs.npy + contact.png for review
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from .journal import (UPSAMPLE, components, darkness_map, detect_rules, ink_mask, local_spacing,
+from .journal import (UPSAMPLE, components, darkness_map, detect_rules, detect_text_lines, ink_mask, local_spacing,
                      make_strip, rule_mask_source, segment)
 
 # Journal photos live outside the repo (they are private). Point HWFONT_PHOTOS at the folder;
@@ -45,22 +45,54 @@ NAMED = {"comma": ",", "colon": ":", "pipe": "|", "hyphen": "-", "period": ".", 
          "at": "@", "equal": "=", "star": "*"}
 
 
-def load_strips(image_id: str, rids: set[int]):
-    """Rebuild only the requested strips (deterministic: same code -> same rids)."""
+# Per-photo options (rotation for photos taken sideways), keyed by image id prefix.
+PHOTO_OPTS_PATH = Path(os.environ.get("HWFONT_PHOTO_OPTS", Path(__file__).parent.parent / "labels" / "photos.json"))
+PHOTO_OPTS = json.loads(PHOTO_OPTS_PATH.read_text()) if PHOTO_OPTS_PATH.exists() else {}
+_ROT = {"cw": cv2.ROTATE_90_CLOCKWISE, "ccw": cv2.ROTATE_90_COUNTERCLOCKWISE, "180": cv2.ROTATE_180}
+
+
+def page(image_id: str):
+    """-> (dark, rules, rule_mask, unruled). Ruled notebook pages use the printed rules; pages with
+    fewer than 8 detected rules (cards, plain paper) use fitted text baselines and no rule removal."""
     img = cv2.imread(str(photo_path(image_id)))
+    rot = PHOTO_OPTS.get(image_id, {}).get("rotate")
+    if rot:
+        img = cv2.rotate(img, _ROT[rot])
     dark, paper = darkness_map(img)
     rules = detect_rules(dark, paper)
-    rmask = rule_mask_source(dark.shape, rules)
+    unruled = len(rules) < 8
+    line_map = None
+    if unruled:
+        rules, line_map = detect_text_lines(dark, paper)
+        rmask = np.zeros(dark.shape, np.uint8)
+    else:
+        rmask = rule_mask_source(dark.shape, rules)
+    return dark, rules, rmask, line_map
+
+
+def strip_for(dark, rules, r, image_id, line_map):
+    st = make_strip(dark, r, local_spacing(rules, r), image_id)
+    st.xh = getattr(r, "xh", None)  # unruled pages: x-height (source px) measured during line detection
+    st.unruled = line_map is not None
+    if st.unruled:
+        st.line_map = cv2.remap(line_map.astype(np.float32), st.map_x, st.map_y, cv2.INTER_NEAREST,
+                                borderMode=cv2.BORDER_CONSTANT, borderValue=0).astype(np.int64)
+    return st
+
+
+def load_strips(image_id: str, rids: set[int]):
+    """Rebuild only the requested strips (deterministic: same code -> same rids)."""
+    dark, rules, rmask, line_map = page(image_id)
     out = {}
     for r in rules:
         if r.rid not in rids:
             continue
-        s = local_spacing(rules, r)
-        st = make_strip(dark, r, s, image_id)
+        st = strip_for(dark, rules, r, image_id, line_map)
         ink = ink_mask(st, rmask)
         lab, comps = components(st, ink)
         assigned = np.isin(lab, [c.cid for c in comps])
         del st.map_x, st.map_y
+        st.line_map = None
         st.cuts = sorted({sg.x0 for sg in segment(st, lab, comps)[1]} - {c.x for c in comps})
         out[r.rid] = (st, ink, assigned, lab, comps)
     return out
@@ -192,9 +224,13 @@ def drop_slivers(m: np.ndarray, ch: str) -> np.ndarray:
     return np.isin(lab, keep)
 
 
-def extract(labels_path: Path, out_dir: Path):
+def extract(labels_paths, out_dir: Path):
     out_dir.mkdir(parents=True, exist_ok=True)
-    labels = parse_labels(labels_path)
+    labels: dict = defaultdict(lambda: defaultdict(list))
+    for lp in ([labels_paths] if isinstance(labels_paths, (str, Path)) else labels_paths):
+        for image_id, by_rid in parse_labels(lp).items():
+            for rid, items in by_rid.items():
+                labels[image_id][rid].extend(items)
     records = []
     for image_id, by_rid in labels.items():
         strips = load_strips(image_id, set(by_rid))
@@ -235,6 +271,7 @@ def extract(labels_path: Path, out_dir: Path):
                 soft = np.where(soft_mask, st.dark, 0)[Y0:Y1, X0:X1].astype(np.float32)
                 records.append(dict(
                     char=ch, image=image_id, rid=rid, x0=x0, x1=x1,
+                    source=PHOTO_OPTS.get(image_id, {}).get("source", "journal"),
                     spacing_px=st.spacing * UPSAMPLE,           # rule spacing, strip px
                     top=int(gy0 - Y0), bottom=int(gy1 - Y0),     # glyph ink extent inside the crop
                     crop_y0=int(Y0), crop_x0=int(X0), v0=int(st.v0),
@@ -272,16 +309,13 @@ def contact_sheet(records, out: Path, cell=(96, 110), cols=16):
 
 def index(image_id: str, out: Path, f: float = 0.3):
     """Every strip of a photo, assigned ink only, core band only, with R-id and a 100-unit scale."""
-    img = cv2.imread(str(photo_path(image_id)))
-    dark, paper = darkness_map(img)
-    rules = detect_rules(dark, paper)
-    rmask = rule_mask_source(dark.shape, rules)
+    dark, rules, rmask, line_map = page(image_id)
     rows = []
     for r in rules:
         s = local_spacing(rules, r)
         if not np.isfinite(s) or s < 25 or s > 120:
             continue
-        st = make_strip(dark, r, s, image_id)
+        st = strip_for(dark, rules, r, image_id, line_map)
         ink = ink_mask(st, rmask)
         lab, comps = components(st, ink)
         del st.map_x, st.map_y
@@ -315,7 +349,7 @@ if __name__ == "__main__":
     elif cmd == "zoom":
         nums = list(map(int, sys.argv[3:]))
         zoom(sys.argv[2], [tuple(nums[i:i + 3]) for i in range(0, len(nums), 3)], Path(f"zoom_{sys.argv[2]}.png"))
-    elif cmd == "extract":
-        extract(Path(sys.argv[2]), Path(sys.argv[3]))
+    elif cmd == "extract":  # extract <labels.txt> [<labels.txt> ...] <out_dir>
+        extract([Path(p) for p in sys.argv[2:-1]], Path(sys.argv[-1]))
     else:
         sys.exit(__doc__)

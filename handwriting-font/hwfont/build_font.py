@@ -49,20 +49,30 @@ from . import legibility, tidy
 # ---- font metrics (units per em = 1000)
 UPM = 1000
 X_HEIGHT = 330
-CAP = 1.75 * X_HEIGHT            # nominal; real capitals keep the size they were written at
+CAP = 1.7 * X_HEIGHT             # nominal; real capitals keep the size they were written at
 ASCENT, DESCENT = 880, 320
-SIDE_BEARING = 0.05 * X_HEIGHT   # tight: joined-hand writers leave little air between letters
-SPACE_WIDTH = 0.95 * X_HEIGHT
-STROKE_UNITS = 0.13 * X_HEIGHT   # target pen width
+SIDE_BEARING = 0.05 * X_HEIGHT  # cards: 0.09 x-height median gap between separate letters   # tight: joined-hand writers leave little air between letters
+SPACE_WIDTH = 0.68 * X_HEIGHT   # + side bearings = 0.78 x-height, the cards' median word gap
+STROKE_UNITS = 0.175 * X_HEIGHT  # target pen width: cards measure 0.165-0.187 x-height (half-max width)
 N_FORMS = 3
 PUA_BASE = 0xE000
 SLANT = math.tan(math.radians(6))  # forward lean applied to pen-drawn fallbacks
 
 TRACE_UPSAMPLE = 2
-LEGIBLE_MAX = 4.2   # legibility.score above this = does not read as the letter (see legibility.py)
-# Drawn even when samples pass the check: this hand writes m as a wave that reads as "w"/"vv" in
-# running text. Kept as an explicit, auditable list rather than a tuned threshold.
+TIERS = {"template": 0, "card": 1, "journal": 2}  # preference: deliberate writing beats journal scrawl
+LEGIBLE_MAX = 4.2
+SPLIT_PENALTY = 1.0
+TWO_MARKS = set('":;')
+# letters often misread as each other in this hand; a sample must look more like itself than these
+CONFUSABLE = {"n": "ru", "r": "nv", "u": "nv", "a": "uo", "e": "c", "c": "e", "h": "nb", "o": "a",
+              "v": "ru", "i": "l", "l": "i"}  # need both marks in the sample
+USED_TIER: dict = {}  # char -> source tier of the samples actually used  # ranking handicap for letters cut out of joined words   # legibility.score above this = does not read as the letter (see legibility.py)
+# Drawn when only journal samples pass the check: the journal m is a fast wave that reads as
+# "w"/"vv" in running text. Card/template m samples are used normally.
 FORCE_DRAWN = set("m")
+# Always drawn: the card n carries an entry tick and a weak right leg; in running text it reads as
+# r or "ʌ" ("and" -> "ard"). The drawn n is the same stem-and-arch shape without the tick.
+ALWAYS_DRAWN = set("n")
 ILLEGIBLE: set = set()  # chars whose every journal sample failed the legibility check
 SCORES: dict = {}   # char -> legibility score of each placed sample, best first
 SOURCES: dict = {}  # char -> label source of each placed sample, best first (written to forms.json)
@@ -84,20 +94,22 @@ HEIGHT_KEEP = 0.2
 
 
 def target_height(ch: str) -> float | None:
+    """Total ink height in x-heights. Calibrated to the neat cards (hwfont.benchmark): ascenders and
+    t 1.65, capitals 1.7, digits 1.5, descenders reaching 1.15 below the baseline."""
     if ch in X_LETTERS:
         return 1.0
     if ch == "t":
-        return 1.6
+        return 1.65
     if ch in "bdfhkl":
-        return 1.95
+        return 1.65
     if ch in "gjpqy":
-        return 1.7
+        return 2.15
     if ch == "i":
-        return 1.4
+        return 1.35
     if ch.isupper():
-        return 1.75
+        return 1.7
     if ch.isdigit():
-        return 1.6
+        return 1.5
     return {"(": 2.0, ")": 2.0, "/": 1.8, "!": 1.7, "?": 1.7, "$": 1.9}.get(ch)
 
 REQUIRED = (
@@ -289,14 +301,26 @@ def place(records):
         scale = X_HEIGHT / xh_px
         top, bottom = r["top"], r["bottom"]
         tgt = target_height(ch)
+        measured = (bottom - top) / xh_px
+        # sanity: a sliver cut from a word can pass the shape check (a thin stroke "looks like" I);
+        # drop samples whose height is implausible for the letter, and two-mark characters with one mark
+        if tgt and not (0.5 * tgt <= measured <= 1.9 * tgt):
+            continue
+        if ch in TWO_MARKS and n_pieces(r["mask"]) < 2:
+            continue
         if tgt:
-            measured = (bottom - top) / xh_px
-            keep = 0.6 if exact else HEIGHT_KEEP  # template writing is consistent: normalise gently
+            # deliberate writing (template, cards) is consistent: normalise gently
+            keep = 0.6 if exact else (0.5 if r.get("source") == "card" else HEIGHT_KEEP)
             scale *= float(np.clip((tgt / measured) ** (1 - keep), 0.55, 1.7))
         anchor = PUNCT_ANCHOR.get(ch)
         missing_dot = ch in NEEDS_DOT and n_pieces(r["mask"]) == 1 and not exact
+        line_base = r.get("source") == "card" and ch in DESCENDERS | set("f.,;:!?-'\"")
         if exact:
             baseline = r["baseline_px"]
+        elif line_base:
+            # cards have a fitted baseline that sits on the round letters (journal.detect_text_lines);
+            # letters that hang below it (your f, g j p q y) keep their real depth
+            baseline = r["v0"] - r["crop_y0"]
         elif ch in DESCENDERS:
             baseline = main_body_top(r["mask"]) + xh_px
         elif anchor == "comma":
@@ -311,7 +335,11 @@ def place(records):
             baseline = bottom
         ink, px_to_units, target_px = ink_bitmap(r, scale)
         it = dict(ch=ch, ink=ink, k=px_to_units, pen=target_px, base=baseline * TRACE_UPSAMPLE, dot=missing_dot,
-                  tgt=tgt, exact=exact, keep=0.6 if exact else HEIGHT_KEEP)
+                  tgt=tgt, exact=exact, line_base=line_base, keep=0.6 if exact else (0.5 if r.get("source") == "card" else HEIGHT_KEEP))
+        it["tier"] = TIERS.get(r.get("source", "journal"), 2)
+        # a letter cut out of a joined word (x-range label) is less reliable than a whole ink component
+        it["split"] = not (exact or str(r.get("x0", "")).startswith("c"))
+        it["pieces"] = n_pieces(r["mask"])
         it["src"] = f'{r["image"][:8]} R{r["rid"]} ' + (r["x0"] if isinstance(r["x0"], str) else f'{r["x0"]}-{r["x1"]}')
         if TIDY:
             it["paths"] = tidy.centerline(ink, target_px)
@@ -324,7 +352,11 @@ def place(records):
         items.append(it)
 
     if TIDY:
-        votes = [it["slant"] for it in items if it["evidence"] >= 1 and it["ch"].isalnum()]
+        # slant of the most deliberate source available (cards/template), else everything
+        top_tier = min(it["tier"] for it in items)
+        votes = [it["slant"] for it in items if it["evidence"] >= 1 and it["ch"].isalnum() and it["tier"] == top_tier]
+        if len(votes) < 20:
+            votes = [it["slant"] for it in items if it["evidence"] >= 1 and it["ch"].isalnum()]
         target_slant = float(np.median(votes)) if votes else 0.0
         global SLANT
         SLANT = target_slant  # pen-drawn fallbacks lean like the writing
@@ -338,7 +370,7 @@ def place(records):
             pts = np.vstack(it["paths"])
             xh_bmp = X_HEIGHT / it["k"]
             ch = it["ch"]
-            if not it["exact"] and ch.isalnum() and ch not in DESCENDERS:
+            if not it["exact"] and not it["line_base"] and ch.isalnum() and ch not in DESCENDERS:
                 it["base"] = float(pts[:, 1].max() + it["pen"] / 2)
             if it["tgt"]:
                 h = (pts[:, 1].max() - pts[:, 1].min() + it["pen"]) / xh_bmp
@@ -360,17 +392,32 @@ def place(records):
     for it in items:
         by_char[it["ch"]].append(it)
     out, dotless = defaultdict(list), defaultdict(list)
-    SOURCES.clear(), SCORES.clear(), ILLEGIBLE.clear()
+    SOURCES.clear(), SCORES.clear(), ILLEGIBLE.clear(), USED_TIER.clear()
     for ch, group in by_char.items():
         if ch.isalnum():
+            dotted = ch in "ij" and any(it["pieces"] >= 2 for it in group)
             for it in group:
                 paths = it["paths"] if TIDY else tidy.centerline(it["final"], it["pen"])
                 it["score"] = legibility.score(paths, ch)
-            group.sort(key=lambda it: it["score"])
+                # distinctiveness: an n whose right leg is weak scores fine as n but better as r
+                rivals = [legibility.score(paths, o) for o in CONFUSABLE.get(ch, "")]
+                it["margin"] = it["score"] - min(rivals) if rivals else -1.0
+                if it["margin"] > 0.3:
+                    it["score"] = max(it["score"], LEGIBLE_MAX + 0.01)  # reads as its rival: not legible
+                # ranking only (the legibility cut-off still uses the raw score): prefer whole
+                # components, and dotted i/j whenever a dotted sample exists
+                it["rank"] = it["score"] + (SPLIT_PENALTY if it["split"] else 0.0) \
+                    + 2.0 * max(0.0, it["margin"] + 0.3) \
+                    + (2.0 if dotted and it["pieces"] < 2 else 0.0)
+            group.sort(key=lambda it: it["rank"])
             legible = [it for it in group if it["score"] <= LEGIBLE_MAX]
-            if ch in FORCE_DRAWN and ch in SKELETONS:
-                ILLEGIBLE.add(ch)
-                continue
+            if dotted:  # an i or j without its dot is never used when a dotted sample exists
+                legible = [it for it in legible if it["pieces"] >= 2] or legible
+            if legible:  # use only the most deliberate source that has a legible sample
+                best_tier = min(it["tier"] for it in legible)
+                legible = [it for it in legible if it["tier"] == best_tier]
+                if ch in ALWAYS_DRAWN or (ch in FORCE_DRAWN and best_tier == TIERS["journal"] and ch in SKELETONS):
+                    legible = []  # journal form known to misread (see FORCE_DRAWN)
             if legible:
                 group = legible
             elif ch in SKELETONS:
@@ -380,6 +427,7 @@ def place(records):
                 group = group[:1]  # nothing reads well and nothing to draw: vary the best one only
         else:
             group = [group[i] for i in rank_typical([shape_signature(it["final"]) for it in group])]
+        USED_TIER[ch] = min(it["tier"] for it in group)
         for it in group:
             SOURCES.setdefault(ch, []).append(it["src"])
             SCORES.setdefault(ch, []).append(round(it.get("score", float("nan")), 2))
@@ -434,7 +482,7 @@ def circle(cx, cy, r, n=14, start=0.0):
 DOT = [[(0.0, 0.0), (0.02, 0.01)]]
 SKELETONS = {
     "i": [[(0.08, 0.0), (0.12, 0.95)], [(0.16, 1.42), (0.18, 1.44)]],
-    "j": [[(0.35, 0.95), (0.3, -0.45), (0.12, -0.72), (-0.15, -0.55)], [(0.4, 1.42), (0.42, 1.44)]],
+    "j": [[(0.35, 0.95), (0.3, -0.75), (0.12, -1.12), (-0.15, -0.9)], [(0.4, 1.42), (0.42, 1.44)]],
     "x": [[(0.0, 0.0), (0.72, 1.0)], [(0.05, 1.0), (0.7, 0.0)]],
     "a": [[(0.62, 0.8), (0.42, 1.0), (0.14, 0.9), (0.0, 0.5), (0.1, 0.08), (0.38, 0.02), (0.62, 0.35)],
           [(0.66, 1.0), (0.63, 0.2), (0.74, 0.0)]],
@@ -452,9 +500,10 @@ SKELETONS = {
     "z": [[(0.02, 0.95), (0.66, 1.0), (0.02, 0.03), (0.7, 0.06)]],
     "w": [[(0.0, 1.0), (0.18, 0.0), (0.4, 0.78), (0.6, 0.0), (0.8, 1.0)]],
     "n": [[(0.02, 0.0), (0.05, 0.95), (0.06, 0.6), (0.3, 0.95), (0.55, 0.85), (0.58, 0.3), (0.62, 0.0)]],
-    "y": [[(0.0, 1.0), (0.12, 0.3), (0.35, 0.1), (0.62, 0.45)], [(0.7, 1.0), (0.55, -0.4), (0.3, -0.72), (0.02, -0.55)]],
+    "y": [[(0.0, 1.0), (0.12, 0.3), (0.35, 0.1), (0.62, 0.45)], [(0.7, 1.0), (0.55, -0.7), (0.3, -1.12), (0.02, -0.9)]],
     "v": [[(0.0, 1.0), (0.32, 0.0), (0.7, 1.05)]],
     "o": [circle(0.35, 0.5, 0.42)],
+    "I": [[(0.08, 1.7), (0.56, 1.72)], [(0.33, 1.71), (0.3, 0.02)], [(0.04, 0.0), (0.54, 0.02)]],
     "H": [[(0.05, 0.0), (0.08, 1.75)], [(0.8, 0.0), (0.83, 1.75)], [(0.0, 0.92), (0.9, 0.98)]],
     "J": [[(0.0, 1.75), (0.95, 1.8)], [(0.55, 1.78), (0.5, 0.25), (0.28, 0.0), (0.0, 0.3)]],
     "K": [[(0.05, 0.0), (0.08, 1.75)], [(0.8, 1.7), (0.12, 0.85), (0.85, 0.0)]],
@@ -502,16 +551,17 @@ def fill_missing(placed: dict) -> dict:
         elif ch in "qg" and placed.get("a"):
             a = first("a")
             x0, _, x1, _ = bounds(a)
-            stem = [(x1 / X_HEIGHT - 0.08, 0.95), (x1 / X_HEIGHT - 0.12, -0.7)]
+            stem = [(x1 / X_HEIGHT - 0.08, 0.95), (x1 / X_HEIGHT - 0.12, -1.12)]
             if ch == "g":
-                stem = stem[:1] + [(x1 / X_HEIGHT - 0.12, -0.45), (x1 / X_HEIGHT - 0.4, -0.75),
-                                   (x1 / X_HEIGHT - 0.75, -0.6)]
+                stem = stem[:1] + [(x1 / X_HEIGHT - 0.12, -0.8), (x1 / X_HEIGHT - 0.4, -1.15),
+                                   (x1 / X_HEIGHT - 0.75, -0.95)]
             made = [merged(r, pen([[(s[0] - SLANT * s[1], s[1]) for s in stem]], seed=ord(ch) + i))
                     for i, r in enumerate(placed["a"][:2])]
             how = "your 'a' + drawn descender"
         elif ch in SKELETONS:
             made = [pen(SKELETONS[ch], seed=ord(ch) * 7 + k) for k in range(2)]
-            how = ("pen-drawn: no journal sample reads clearly" if ch in ILLEGIBLE
+            how = ("pen-drawn: samples misread in running text (ALWAYS_DRAWN)" if ch in ALWAYS_DRAWN
+                   else "pen-drawn: no sample reads clearly" if ch in ILLEGIBLE
                    else "pen-drawn at your stroke width")
         if made:
             placed[ch] = made
@@ -632,16 +682,22 @@ feature calt {{
     for r in records:
         counts[r["char"]] += 1
     templ = {r["char"] for r in records if r.get("source") == "template"}
-    audit = {ch: {"source": "template" if ch in templ else source.get(ch, "journal"),
+    tier_name = {v: k for k, v in TIERS.items()}
+    audit = {ch: {"source": tier_name[USED_TIER[ch]] if source.get(ch) == "journal" and ch in USED_TIER
+                  else ("template" if ch in templ else source.get(ch, "journal")),
                   "real_samples": counts.get(ch, 0)} for ch in REQUIRED}
     out_path.with_name("forms.json").write_text(json.dumps(
         {ch: (SOURCES.get(ch, []) + ["(perturbed copy)"] * N_FORMS)[:N_FORMS] for ch in chars}, indent=1, ensure_ascii=False))
     out_path.with_name("legibility.json").write_text(json.dumps(SCORES, indent=1, ensure_ascii=False))
     out_path.with_name("coverage.json").write_text(json.dumps(audit, indent=1, ensure_ascii=False))
-    real = sum(1 for v in audit.values() if v["source"] in ("journal", "template"))
-    print(f"wrote {out_path}: {len(chars)} chars x {N_FORMS} forms; {real}/{len(REQUIRED)} from your handwriting")
+    real = sum(1 for v in audit.values() if v["source"] in TIERS)
+    by_src = defaultdict(int)
+    for v in audit.values():
+        by_src[v["source"] if v["source"] in TIERS else "derived/drawn"] += 1
+    print(f"wrote {out_path}: {len(chars)} chars x {N_FORMS} forms; {real}/{len(REQUIRED)} from your handwriting "
+          f"({', '.join(f'{k} {v}' for k, v in sorted(by_src.items()))})")
     for ch, v in audit.items():
-        if v["source"] not in ("journal", "template"):
+        if v["source"] not in TIERS:
             print(f"  {ch!r}: {v['source']}")
 
 
