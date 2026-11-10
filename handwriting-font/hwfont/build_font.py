@@ -44,6 +44,8 @@ from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.pens.transformPen import TransformPen
 from skimage.morphology import skeletonize
 
+from . import legibility, tidy
+
 # ---- font metrics (units per em = 1000)
 UPM = 1000
 X_HEIGHT = 330
@@ -57,8 +59,20 @@ PUA_BASE = 0xE000
 SLANT = math.tan(math.radians(6))  # forward lean applied to pen-drawn fallbacks
 
 TRACE_UPSAMPLE = 2
+LEGIBLE_MAX = 4.2   # legibility.score above this = does not read as the letter (see legibility.py)
+# Drawn even when samples pass the check: this hand writes m as a wave that reads as "w"/"vv" in
+# running text. Kept as an explicit, auditable list rather than a tuned threshold.
+FORCE_DRAWN = set("m")
+ILLEGIBLE: set = set()  # chars whose every journal sample failed the legibility check
+SCORES: dict = {}   # char -> legibility score of each placed sample, best first
+SOURCES: dict = {}  # char -> label source of each placed sample, best first (written to forms.json)
+TIDY = True        # legibility pass (hwfont/tidy.py); --raw turns it off for maximum fidelity
+SLANT_KEEP = 0.35  # share of each glyph's own lean kept when evening out slant
 
 X_LETTERS = set("acemnorsuvwxz")
+# letters whose free horizontal ends are joining strokes, not part of the letter's shape
+# (t/f/z crossbars, r arm and descender hooks are excluded on purpose)
+CONNECTOR_TRIM = set("abcdehiklmnosuvwx")
 DESCENDERS = set("gjpqy")
 PUNCT_ANCHOR = {",": "comma", ";": "comma", "'": "cap_top", '"': "cap_top", "-": "mid", "=": "mid", "+": "mid"}
 NEEDS_DOT = set("?!")
@@ -177,8 +191,10 @@ def n_pieces(mask: np.ndarray) -> int:
     return cv2.connectedComponentsWithStats(mask.astype(np.uint8), connectivity=8)[0] - 1
 
 
-def trace_record(record, scale: float, baseline_px: float) -> RecordingPen:
-    """Vectorise one sample at the threshold that gives the target pen width."""
+def ink_bitmap(record, scale: float):
+    """Threshold one sample (upsampled) at the level whose stroke width is closest to the target pen.
+
+    Returns (ink, px_to_units, target_px)."""
     soft = record["soft"]
     up = cv2.resize(soft, None, fx=TRACE_UPSAMPLE, fy=TRACE_UPSAMPLE, interpolation=cv2.INTER_CUBIC)
     up = cv2.GaussianBlur(up, (0, 0), 1.2 * TRACE_UPSAMPLE)
@@ -186,7 +202,22 @@ def trace_record(record, scale: float, baseline_px: float) -> RecordingPen:
     region = cv2.dilate(m, np.ones((5, 5), np.uint8)) > 0
     px_to_units = scale / TRACE_UPSAMPLE
     target_px = STROKE_UNITS / px_to_units
-    best, best_err = None, 1e9
+    if TIDY:
+        # tidy mode re-renders the stroke, so only the centerline matters: take the thinnest ink that
+        # does not break any stroke apart. Thin ink keeps loops open (filled e/a bowls skeletonise
+        # to a point, which is the main source of illegible letters).
+        def pieces(b):
+            n, _, st, _ = cv2.connectedComponentsWithStats(b.astype(np.uint8), connectivity=8)
+            return int((st[1:, cv2.CC_STAT_AREA] >= 30).sum())
+        best = (up > 26) & region
+        n0 = pieces(best)
+        for thr in range(32, 150, 6):
+            ink = (up > thr) & region
+            if pieces(ink) > n0 or ink.sum() < 0.3 * best.sum():
+                break
+            best = ink
+        return best, px_to_units, target_px
+    best, best_err = (up > 40) & region, 1e9
     for thr in range(14, 96, 6):
         ink = (up > thr) & region
         w = stroke_width_px(ink)
@@ -195,8 +226,11 @@ def trace_record(record, scale: float, baseline_px: float) -> RecordingPen:
         err = abs(w - target_px)
         if err < best_err:
             best, best_err = ink, err
-    ink = best
-    # residual correction when thresholds alone cannot reach the target (very faint/very bold photo)
+    return best, px_to_units, target_px
+
+
+def match_width(ink: np.ndarray, target_px: float) -> np.ndarray:
+    """Raw mode: dilate/erode toward the target pen width when thresholds alone could not reach it."""
     w = stroke_width_px(ink)
     delta = int(round((target_px - w) / 2))
     if delta > 0:
@@ -206,18 +240,48 @@ def trace_record(record, scale: float, baseline_px: float) -> RecordingPen:
         thinner = cv2.erode(ink.astype(np.uint8), k) > 0
         if n_pieces(thinner) <= n_pieces(ink):  # never break a stroke apart
             ink = thinner
-    xs = np.where(ink.any(0))[0]
-    left = xs.min() if len(xs) else 0
-    return trace_bitmap(ink, px_to_units, baseline_px * TRACE_UPSAMPLE, left)
+    return ink
+
+
+def shape_signature(ink: np.ndarray, size: int = 40) -> np.ndarray:
+    """Glyph normalised into a size x size box (aspect kept, centred), blurred for tolerant matching."""
+    ys, xs = np.where(ink)
+    if not len(ys):
+        return np.zeros((size, size), np.float32)
+    crop = ink[ys.min():ys.max() + 1, xs.min():xs.max() + 1].astype(np.uint8) * 255
+    h, w = crop.shape
+    f = (size - 4) / max(h, w)
+    crop = cv2.resize(crop, (max(1, int(w * f)), max(1, int(h * f))), interpolation=cv2.INTER_AREA)
+    out = np.zeros((size, size), np.float32)
+    oy, ox = (size - crop.shape[0]) // 2, (size - crop.shape[1]) // 2
+    out[oy:oy + crop.shape[0], ox:ox + crop.shape[1]] = crop / 255.0
+    return cv2.GaussianBlur(out, (0, 0), 1.5)
+
+
+def rank_typical(sigs: list[np.ndarray]) -> list[int]:
+    """Order samples by typicality (mean distance to the other samples of the same character).
+
+    The most typical instance is the one most likely to read as that letter; outliers are usually
+    mis-segmentations or a letter written unusually fast."""
+    n = len(sigs)
+    if n <= 2:
+        return list(range(n))
+    D = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i + 1, n):
+            D[i, j] = D[j, i] = float(np.abs(sigs[i] - sigs[j]).mean())
+    return list(np.argsort(D.sum(1) / (n - 1)))
 
 
 def place(records):
-    """-> ({char: [RecordingPen]}, {char: [needs_dot]}) in font units, baseline at 0."""
+    """-> ({char: [RecordingPen]}, {char: [needs_dot]}) in font units, baseline at 0, best first."""
     rho, rho_global = page_rho([r for r in records if r.get("source") != "template"])
     # deliberate template writing beats journal scrawl: if a char has template samples, use only those
     templated = {r["char"] for r in records if r.get("source") == "template"}
     records = [r for r in records if r.get("source") == "template" or r["char"] not in templated]
-    out, dotless = defaultdict(list), defaultdict(list)
+
+    # pass 1: geometry, ink bitmap and (tidy mode) centerline + slant for every sample
+    items = []
     for r in records:
         ch = r["char"]
         exact = "baseline_px" in r  # template boxes print the baseline and x-height
@@ -245,8 +309,84 @@ def place(records):
             baseline = bottom + 0.42 * xh_px  # leave room for the dot we add below
         else:
             baseline = bottom
-        out[ch].append(trace_record(r, scale, baseline))
-        dotless[ch].append(missing_dot)
+        ink, px_to_units, target_px = ink_bitmap(r, scale)
+        it = dict(ch=ch, ink=ink, k=px_to_units, pen=target_px, base=baseline * TRACE_UPSAMPLE, dot=missing_dot,
+                  tgt=tgt, exact=exact, keep=0.6 if exact else HEIGHT_KEEP)
+        it["src"] = f'{r["image"][:8]} R{r["rid"]} ' + (r["x0"] if isinstance(r["x0"], str) else f'{r["x0"]}-{r["x1"]}')
+        if TIDY:
+            it["paths"] = tidy.centerline(ink, target_px)
+            if ch in CONNECTOR_TRIM:
+                it["paths"] = tidy.trim_connectors(it["paths"], X_HEIGHT / px_to_units)  # x-height in bitmap px
+            # sample the centerline every ~0.2 x-height so pixel staircases don't quantise the angle
+            it["slant"], it["evidence"] = tidy.slant(it["paths"], step=max(6, int(0.2 * X_HEIGHT / px_to_units)))
+            # only trust the slant of glyphs with real vertical strokes (not o, s, e, punctuation)
+            it["evidence"] /= max(target_px, 1) * 8
+        items.append(it)
+
+    if TIDY:
+        votes = [it["slant"] for it in items if it["evidence"] >= 1 and it["ch"].isalnum()]
+        target_slant = float(np.median(votes)) if votes else 0.0
+        global SLANT
+        SLANT = target_slant  # pen-drawn fallbacks lean like the writing
+        print(f"tidy: writing slant {math.degrees(math.atan(target_slant)):+.1f} deg "
+              f"(median of {len(votes)} glyphs), keeping {SLANT_KEEP:.0%} of each glyph's deviation")
+
+    # pass 2: final bitmap per sample
+    for it in items:
+        if TIDY and it["paths"]:
+            # re-measure on what will actually be drawn (connectors trimmed): baseline and size
+            pts = np.vstack(it["paths"])
+            xh_bmp = X_HEIGHT / it["k"]
+            ch = it["ch"]
+            if not it["exact"] and ch.isalnum() and ch not in DESCENDERS:
+                it["base"] = float(pts[:, 1].max() + it["pen"] / 2)
+            if it["tgt"]:
+                h = (pts[:, 1].max() - pts[:, 1].min() + it["pen"]) / xh_bmp
+                f = float(np.clip((it["tgt"] / max(h, 1e-3)) ** (1 - it["keep"]), 0.6, 1.6))
+                x0 = pts[:, 0].min()
+                it["paths"] = [np.column_stack([x0 + (p[:, 0] - x0) * f, it["base"] + (p[:, 1] - it["base"]) * f])
+                               for p in it["paths"]]
+        if TIDY:
+            shear = 0.0
+            if it["evidence"] >= 1:
+                shear = (target_slant - it["slant"]) * (1 - SLANT_KEEP)
+            bmp, yoff = tidy.restroke(it["paths"], it["ink"].shape, it["pen"], it["base"], shear)
+            it["final"], it["base_final"] = bmp, it["base"] + yoff
+        else:
+            it["final"], it["base_final"] = match_width(it["ink"], it["pen"]), it["base"]
+
+    # pass 3: keep samples that read as their letter, best first, then trace
+    by_char = defaultdict(list)
+    for it in items:
+        by_char[it["ch"]].append(it)
+    out, dotless = defaultdict(list), defaultdict(list)
+    SOURCES.clear(), SCORES.clear(), ILLEGIBLE.clear()
+    for ch, group in by_char.items():
+        if ch.isalnum():
+            for it in group:
+                paths = it["paths"] if TIDY else tidy.centerline(it["final"], it["pen"])
+                it["score"] = legibility.score(paths, ch)
+            group.sort(key=lambda it: it["score"])
+            legible = [it for it in group if it["score"] <= LEGIBLE_MAX]
+            if ch in FORCE_DRAWN and ch in SKELETONS:
+                ILLEGIBLE.add(ch)
+                continue
+            if legible:
+                group = legible
+            elif ch in SKELETONS:
+                ILLEGIBLE.add(ch)  # fill_missing draws it instead
+                continue
+            else:
+                group = group[:1]  # nothing reads well and nothing to draw: vary the best one only
+        else:
+            group = [group[i] for i in rank_typical([shape_signature(it["final"]) for it in group])]
+        for it in group:
+            SOURCES.setdefault(ch, []).append(it["src"])
+            SCORES.setdefault(ch, []).append(round(it.get("score", float("nan")), 2))
+            xs = np.where(it["final"].any(0))[0]
+            left = xs.min() if len(xs) else 0
+            out[ch].append(trace_bitmap(it["final"], it["k"], it["base_final"], left))
+            dotless[ch].append(it["dot"])
     return out, dotless
 
 
@@ -296,6 +436,21 @@ SKELETONS = {
     "i": [[(0.08, 0.0), (0.12, 0.95)], [(0.16, 1.42), (0.18, 1.44)]],
     "j": [[(0.35, 0.95), (0.3, -0.45), (0.12, -0.72), (-0.15, -0.55)], [(0.4, 1.42), (0.42, 1.44)]],
     "x": [[(0.0, 0.0), (0.72, 1.0)], [(0.05, 1.0), (0.7, 0.0)]],
+    "a": [[(0.62, 0.8), (0.42, 1.0), (0.14, 0.9), (0.0, 0.5), (0.1, 0.08), (0.38, 0.02), (0.62, 0.35)],
+          [(0.66, 1.0), (0.63, 0.2), (0.74, 0.0)]],
+    "c": [[(0.6, 0.85), (0.38, 1.0), (0.1, 0.86), (0.0, 0.5), (0.1, 0.12), (0.35, 0.0), (0.62, 0.12)]],
+    "e": [[(0.04, 0.48), (0.58, 0.58), (0.52, 0.88), (0.3, 1.0), (0.06, 0.82), (0.0, 0.4), (0.14, 0.08),
+           (0.4, 0.0), (0.64, 0.15)]],
+    "o": [[(0.38, 1.0), (0.1, 0.86), (0.0, 0.45), (0.14, 0.06), (0.4, 0.0), (0.62, 0.22), (0.66, 0.62),
+           (0.52, 0.94), (0.3, 1.02)]],
+    "u": [[(0.0, 1.0), (0.02, 0.3), (0.2, 0.0), (0.45, 0.05), (0.62, 0.45)], [(0.66, 1.0), (0.64, 0.15), (0.74, 0.0)]],
+    "m": [[(0.0, 0.0), (0.02, 0.95)], [(0.03, 0.6), (0.2, 0.96), (0.37, 0.85), (0.39, 0.0)],
+          [(0.4, 0.6), (0.57, 0.96), (0.75, 0.85), (0.78, 0.0)]],
+    "r": [[(0.02, 0.0), (0.05, 0.95)], [(0.06, 0.55), (0.24, 0.92), (0.5, 0.96)]],
+    "s": [[(0.55, 0.9), (0.3, 1.0), (0.06, 0.84), (0.14, 0.56), (0.44, 0.42), (0.6, 0.18), (0.36, 0.0), (0.0, 0.1)]],
+    "Q": [circle(0.5, 0.88, 0.5, n=16, start=1.2), [(0.5, 0.35), (0.95, -0.05)]],
+    "z": [[(0.02, 0.95), (0.66, 1.0), (0.02, 0.03), (0.7, 0.06)]],
+    "w": [[(0.0, 1.0), (0.18, 0.0), (0.4, 0.78), (0.6, 0.0), (0.8, 1.0)]],
     "n": [[(0.02, 0.0), (0.05, 0.95), (0.06, 0.6), (0.3, 0.95), (0.55, 0.85), (0.58, 0.3), (0.62, 0.0)]],
     "y": [[(0.0, 1.0), (0.12, 0.3), (0.35, 0.1), (0.62, 0.45)], [(0.7, 1.0), (0.55, -0.4), (0.3, -0.72), (0.02, -0.55)]],
     "v": [[(0.0, 1.0), (0.32, 0.0), (0.7, 1.05)]],
@@ -356,7 +511,8 @@ def fill_missing(placed: dict) -> dict:
             how = "your 'a' + drawn descender"
         elif ch in SKELETONS:
             made = [pen(SKELETONS[ch], seed=ord(ch) * 7 + k) for k in range(2)]
-            how = "pen-drawn at your stroke width"
+            how = ("pen-drawn: no journal sample reads clearly" if ch in ILLEGIBLE
+                   else "pen-drawn at your stroke width")
         if made:
             placed[ch] = made
             source[ch] = how
@@ -478,11 +634,14 @@ feature calt {{
     templ = {r["char"] for r in records if r.get("source") == "template"}
     audit = {ch: {"source": "template" if ch in templ else source.get(ch, "journal"),
                   "real_samples": counts.get(ch, 0)} for ch in REQUIRED}
+    out_path.with_name("forms.json").write_text(json.dumps(
+        {ch: (SOURCES.get(ch, []) + ["(perturbed copy)"] * N_FORMS)[:N_FORMS] for ch in chars}, indent=1, ensure_ascii=False))
+    out_path.with_name("legibility.json").write_text(json.dumps(SCORES, indent=1, ensure_ascii=False))
     out_path.with_name("coverage.json").write_text(json.dumps(audit, indent=1, ensure_ascii=False))
-    real = sum(1 for v in audit.values() if v["real_samples"])
+    real = sum(1 for v in audit.values() if v["source"] in ("journal", "template"))
     print(f"wrote {out_path}: {len(chars)} chars x {N_FORMS} forms; {real}/{len(REQUIRED)} from your handwriting")
     for ch, v in audit.items():
-        if not v["real_samples"]:
+        if v["source"] not in ("journal", "template"):
             print(f"  {ch!r}: {v['source']}")
 
 
@@ -492,5 +651,7 @@ if __name__ == "__main__":
     ap.add_argument("glyphs", nargs="+", type=Path, help="glyph .npy files (journal and/or template)")
     ap.add_argument("-o", "--out", type=Path, required=True, help="output .otf")
     ap.add_argument("--family", default="My Hand")
+    ap.add_argument("--raw", action="store_true", help="trace the ink as photographed (no tidy pass)")
     a = ap.parse_args()
+    TIDY = not a.raw
     build(a.glyphs, a.out, a.family)
