@@ -1,6 +1,6 @@
 # image R<rid>: char x0-x1 | char c<x0> ...   (display px from sheets/zoom views)
 e0fdfe11 R39: I c134 | D 222-273 | E 273-323 | A c321 | S c379 | A c484 | R 555-612 | N 785-848 | T c871 | W c1061
-e0fdfe11 R41: V c219 | E c299 | R 367-416 | Y 416-469
+e0fdfe11 R41: V c219 | E c299 | R 367-416
 e0fdfe11 R32: I c208
 c65940b3 R31: l 478-506 | I c620 | l c1292 | k 1315-1372
 c65940b3 R33: period c524
@@ -52,4 +52,4 @@ ec681bb8 R19: 2 c486 | period c532 | G c582+c605 | e 663-687 | e 687-722 | d 722
 0c841856 R23: T c197 | h 417-450
 0c841856 R29: h c271 | l c319
 0c841856 R11: k c171
-0c841856 R25: Y 118-174 | e 188-223 | d 242-290
+0c841856 R25: e 188-223 | d 242-290

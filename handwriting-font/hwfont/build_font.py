@@ -203,6 +203,20 @@ def n_pieces(mask: np.ndarray) -> int:
     return cv2.connectedComponentsWithStats(mask.astype(np.uint8), connectivity=8)[0] - 1
 
 
+def dotted_pieces(mask: np.ndarray) -> int:
+    """2 when an i/j has a real dot (a smaller mark whose centre is above the stem's top), else 1."""
+    n, _, st, cen = cv2.connectedComponentsWithStats(mask.astype(np.uint8), connectivity=8)
+    if n < 3:
+        return 1
+    order = np.argsort(-st[1:, cv2.CC_STAT_AREA]) + 1
+    stem, dot = order[0], order[1]
+    stem_top = st[stem, cv2.CC_STAT_TOP]
+    stem_h = st[stem, cv2.CC_STAT_HEIGHT]
+    above = cen[dot][1] < stem_top + 0.1 * stem_h
+    near = abs(cen[dot][0] - cen[stem][0]) < 0.8 * stem_h
+    return 2 if above and near else 1
+
+
 def ink_bitmap(record, scale: float):
     """Threshold one sample (upsampled) at the level whose stroke width is closest to the target pen.
 
@@ -339,7 +353,7 @@ def place(records):
         it["tier"] = TIERS.get(r.get("source", "journal"), 2)
         # a letter cut out of a joined word (x-range label) is less reliable than a whole ink component
         it["split"] = not (exact or str(r.get("x0", "")).startswith("c"))
-        it["pieces"] = n_pieces(r["mask"])
+        it["pieces"] = dotted_pieces(r["mask"]) if ch in "ij" else n_pieces(r["mask"])
         it["src"] = f'{r["image"][:8]} R{r["rid"]} ' + (r["x0"] if isinstance(r["x0"], str) else f'{r["x0"]}-{r["x1"]}')
         if TIDY:
             it["paths"] = tidy.centerline(ink, target_px)
@@ -503,6 +517,7 @@ SKELETONS = {
     "y": [[(0.0, 1.0), (0.12, 0.3), (0.35, 0.1), (0.62, 0.45)], [(0.7, 1.0), (0.55, -0.7), (0.3, -1.12), (0.02, -0.9)]],
     "v": [[(0.0, 1.0), (0.32, 0.0), (0.7, 1.05)]],
     "o": [circle(0.35, 0.5, 0.42)],
+    "Y": [[(0.0, 1.7), (0.36, 0.9)], [(0.76, 1.72), (0.36, 0.9), (0.32, 0.0)]],
     "I": [[(0.08, 1.7), (0.56, 1.72)], [(0.33, 1.71), (0.3, 0.02)], [(0.04, 0.0), (0.54, 0.02)]],
     "H": [[(0.05, 0.0), (0.08, 1.75)], [(0.8, 0.0), (0.83, 1.75)], [(0.0, 0.92), (0.9, 0.98)]],
     "J": [[(0.0, 1.75), (0.95, 1.8)], [(0.55, 1.78), (0.5, 0.25), (0.28, 0.0), (0.0, 0.3)]],
