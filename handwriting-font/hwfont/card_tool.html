@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handwritten Card</title>
+<style>
+  /* Font + glyph-variant map are injected by make_card_tool.py */
+  @font-face { font-family: "HandFont"; src: url(data:font/otf;base64,__FONT_B64__) format("opentype"); }
+  :root { --bg:#f4f1ea; --panel:#fff; --ink:#1f2328; --muted:#6b6f76; --line:#ddd8cc; --accent:#1d2a5c; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#1b1c1f; --panel:#25262a; --ink:#ececec; --muted:#a0a3a8; --line:#3a3b40; --accent:#9fb3ff; } }
+  :root[data-theme="dark"] { --bg:#1b1c1f; --panel:#25262a; --ink:#ececec; --muted:#a0a3a8; --line:#3a3b40; --accent:#9fb3ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+  .app { display:grid; grid-template-columns: minmax(280px, 360px) 1fr; gap:20px; padding:20px; max-width:1200px; margin:0 auto; }
+  @media (max-width: 800px) { .app { grid-template-columns: 1fr; padding:16px; } }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  h1 { font-size:16px; margin:0 0 12px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:12px 0 4px; }
+  textarea { width:100%; min-height:170px; resize:vertical; font:15px/1.4 system-ui, sans-serif; padding:10px; border-radius:8px; border:1px solid var(--line); background:transparent; color:var(--ink); }
+  select, input[type=range] { width:100%; }
+  select { padding:6px; border-radius:6px; border:1px solid var(--line); background:transparent; color:var(--ink); }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  button { border:1px solid var(--accent); background:var(--accent); color:var(--panel); border-radius:7px; padding:8px 12px; font-weight:600; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--accent); }
+  .stage { display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .card { background:#fffdf8; box-shadow:0 2px 14px rgba(0,0,0,.18); max-width:100%; }
+  .card svg { display:block; width:100%; height:auto; }
+  .status { font-size:12px; color:var(--muted); min-height:18px; text-align:center; }
+  .status.err { color:#c0392b; }
+  .check { display:flex; align-items:center; gap:6px; margin-top:12px; font-size:12px; color:var(--muted); }
+  @media print {
+    body { background:#fff; }
+    .panel, .status { display:none !important; }
+    .app { display:block; padding:0; }
+    .card { box-shadow:none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="panel">
+    <h1>Handwritten card</h1>
+    <label for="msg">Message</label>
+    <textarea id="msg">Dear Sarah &amp; Mike,
+
+Thank you so much for the lovely dinner! We had the best time and can't wait to see you again soon.
+
+Love,
+Sam</textarea>
+    <div class="row">
+      <div><label for="size">Card</label>
+        <select id="size">
+          <option value="5x7">5 x 7 in</option><option value="4x6">4 x 6 in</option>
+          <option value="a2">A2 4.25 x 5.5 in</option><option value="a6">A6 105 x 148 mm</option>
+          <option value="3.5x5">3.5 x 5 in</option>
+        </select></div>
+      <div><label for="orient">Orientation</label>
+        <select id="orient"><option value="p">Portrait</option><option value="l">Landscape</option></select></div>
+    </div>
+    <div class="row">
+      <div><label for="ink">Ink</label>
+        <select id="ink"><option value="#1d2a5c">Blue-black</option><option value="#1a1a1a">Black</option><option value="#1f3fa8">Ballpoint blue</option></select></div>
+      <div><label for="align">Align</label>
+        <select id="align"><option value="left">Left</option><option value="center">Center</option></select></div>
+    </div>
+    <label for="fs">Size <span id="fsv"></span></label><input id="fs" type="range" min="14" max="44" value="26">
+    <label for="lh">Line spacing <span id="lhv"></span></label><input id="lh" type="range" min="110" max="220" value="150">
+    <label for="mess">Natural wobble <span id="messv"></span></label><input id="mess" type="range" min="0" max="200" value="100">
+    <label class="check"><input type="checkbox" id="transparent" checked> Transparent background in PNG (for printing onto a designed card)</label>
+    <div class="btns">
+      <button id="shuffle" class="ghost" title="New random letter variants and wobble">Reshuffle</button>
+      <button id="print">Print / Save PDF</button>
+      <button id="png">PNG 300 dpi</button>
+      <button id="svgdl" class="ghost">SVG</button>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="status" id="status">Loading your handwriting…</div>
+    <div class="card" id="card"></div>
+  </div>
+</div>
+<script>
+// char -> [PUA codepoints of its forms]; forms 0..2 are the alternates baked into the font
+const FORMS = __PUA_JSON__;
+const FONT_B64 = "__FONT_B64__";
+const SIZES = { "5x7": [5, 7], "4x6": [4, 6], "a2": [4.25, 5.5], "a6": [4.134, 5.827], "3.5x5": [3.5, 5] };
+const PX_PER_IN = 96, MARGIN_IN = 0.45;
+const $ = (id) => document.getElementById(id);
+let seed = 7, lastSvg = "", lastSize = [5, 7];
+
+// Deterministic PRNG so the preview, print and PNG are the same layout until "Reshuffle".
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gauss = (r) => { let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function settings() {
+  const [w, h] = SIZES[$("size").value];
+  const land = $("orient").value === "l";
+  return { W: land ? h : w, H: land ? w : h, pt: +$("fs").value, lh: +$("lh").value / 100,
+           mess: +$("mess").value / 100, ink: $("ink").value, align: $("align").value };
+}
+
+// Pick a form for each character, never repeating the previous form of the same character.
+function chooseForms(text, r) {
+  const last = {};
+  return [...text].map((ch) => {
+    const forms = FORMS[ch];
+    if (!forms || !forms.length) return { ch, out: ch };
+    let i = Math.floor(r() * forms.length);
+    if (forms.length > 1 && i === last[ch]) i = (i + 1) % forms.length;
+    last[ch] = i;
+    return { ch, out: String.fromCodePoint(forms[i]) };
+  });
+}
+
+function layout() {
+  const s = settings();
+  const r = mulberry32(seed);
+  const fontPx = s.pt * PX_PER_IN / 72;
+  const W = s.W * PX_PER_IN, H = s.H * PX_PER_IN, M = MARGIN_IN * PX_PER_IN, maxW = W - 2 * M;
+  const ctx = document.createElement("canvas").getContext("2d");
+  ctx.font = `${fontPx}px HandFont`;
+  const text = $("msg").value.replace(/\r/g, "");
+  const glyphs = chooseForms(text, r);
+  // split into paragraphs -> words of glyphs (spaces kept separately so their width can vary)
+  const lines = []; let line = [], x = 0, para = [];
+  const flushWord = (word) => {
+    if (!word.length) return;
+    const ww = word.reduce((a, g) => a + g.w, 0);
+    if (x > 0 && x + ww > maxW) { lines.push(line); line = []; x = 0; }
+    for (const g of word) { line.push({ ...g, x }); x += g.w; }
+  };
+  let word = [];
+  for (const g of glyphs) {
+    if (g.ch === "\n") { flushWord(word); word = []; lines.push(line); line = []; x = 0; continue; }
+    g.w = ctx.measureText(g.out).width * (1 + gauss(r) * 0.02 * s.mess);
+    if (g.ch === " ") { flushWord(word); word = []; if (x > 0) x += g.w * (1 + gauss(r) * 0.12 * s.mess); continue; }
+    word.push(g);
+  }
+  flushWord(word); lines.push(line);
+  // per-line baseline drift: slight slope + slow wave, like writing without ruled lines
+  const lineGap = fontPx * s.lh, out = [];
+  let y = M + fontPx * 0.85;
+  for (const ln of lines) {
+    if (ln.length) {
+      const lineW = ln[ln.length - 1].x + ln[ln.length - 1].w;
+      const dx = s.align === "center" ? (maxW - lineW) / 2 : gauss(r) * 1.5 * s.mess;
+      const slope = gauss(r) * 0.006 * s.mess, phase = r() * 6.28;
+      for (const g of ln) {
+        const gx = M + dx + g.x;
+        const gy = y + slope * g.x + Math.sin(g.x / (fontPx * 5) + phase) * fontPx * 0.025 * s.mess + gauss(r) * fontPx * 0.012 * s.mess;
+        out.push({ ...g, gx, gy, rot: gauss(r) * 1.6 * s.mess, sc: 1 + gauss(r) * 0.025 * s.mess, op: 0.86 + r() * 0.14 });
+      }
+    }
+    y += lineGap;
+  }
+  return { s, W, H, fontPx, glyphs: out, overflow: y - lineGap + fontPx * 0.35 > H - M * 0.6 };
+}
+
+function toSvg(L, withFont = true) {
+  const parts = L.glyphs.map((g) =>
+    `<text x="${g.gx.toFixed(2)}" y="${g.gy.toFixed(2)}" fill-opacity="${g.op.toFixed(2)}" transform="rotate(${g.rot.toFixed(2)} ${g.gx.toFixed(1)} ${g.gy.toFixed(1)}) translate(${g.gx.toFixed(2)} ${g.gy.toFixed(2)}) scale(${g.sc.toFixed(3)}) translate(${(-g.gx).toFixed(2)} ${(-g.gy).toFixed(2)})">${esc(g.out)}</text>`);
+  const font = withFont ? `<style>@font-face{font-family:HandFont;src:url(data:font/otf;base64,${FONT_B64}) format("opentype");}</style>` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${L.s.W}in" height="${L.s.H}in" viewBox="0 0 ${L.W} ${L.H}">${font}` +
+    `<g font-family="HandFont" font-size="${L.fontPx.toFixed(2)}" fill="${L.s.ink}" style="font-kerning:none;font-feature-settings:'calt' 0">${parts.join("")}</g></svg>`;
+}
+
+function render() {
+  $("fsv").textContent = `${$("fs").value} pt`;
+  $("lhv").textContent = `${(+$("lh").value / 100).toFixed(2)}x`;
+  $("messv").textContent = `${$("mess").value}%`;
+  if (!$("msg").value.trim()) { $("card").innerHTML = ""; setStatus("Type a message to see it in your handwriting."); return; }
+  const L = layout();
+  lastSize = [L.s.W, L.s.H];
+  lastSvg = toSvg(L);
+  $("card").style.width = `min(100%, ${L.s.W * 96}px)`;
+  $("card").innerHTML = toSvg(L, false);  // page already has the @font-face; skip the duplicate
+  const missing = [...new Set([...$("msg").value].filter((c) => c.trim() && !FORMS[c]))];
+  setStatus(L.overflow ? "Text runs off the card: reduce size or line spacing." :
+            missing.length ? `Not in your font yet (system font used): ${missing.join(" ")}` : "", L.overflow);
+  document.getElementById("pagestyle")?.remove();
+  const st = document.createElement("style"); st.id = "pagestyle";
+  st.textContent = `@page { size: ${L.s.W}in ${L.s.H}in; margin: 0; } @media print { .card { width:${L.s.W}in !important; height:${L.s.H}in; } }`;
+  document.head.appendChild(st);
+}
+function setStatus(msg, err = false) { $("status").textContent = msg; $("status").className = "status" + (err ? " err" : ""); }
+
+function download(blob, name) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function exportPng() {
+  const [w, h] = lastSize, dpi = 300;
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement("canvas"); c.width = Math.round(w * dpi); c.height = Math.round(h * dpi);
+    const ctx = c.getContext("2d");
+    if (!$("transparent").checked) { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); }
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    c.toBlob((b) => download(b, "card.png"), "image/png");
+  };
+  img.onerror = () => setStatus("PNG export failed in this browser; use Print / Save PDF.", true);
+  img.src = URL.createObjectURL(new Blob([lastSvg], { type: "image/svg+xml" }));
+}
+
+for (const id of ["msg", "size", "orient", "ink", "align", "fs", "lh", "mess"]) $(id).addEventListener("input", render);
+$("shuffle").onclick = () => { seed = (Math.random() * 1e9) | 0; render(); };
+$("print").onclick = () => window.print();
+$("png").onclick = exportPng;
+$("svgdl").onclick = () => download(new Blob([lastSvg], { type: "image/svg+xml" }), "card.svg");
+
+document.fonts.load("20px HandFont").then((faces) => {
+  if (!faces.length) throw new Error("font did not load");
+  setStatus(""); render();
+}).catch((e) => setStatus(`Could not load the handwriting font (${e.message}).`, true));
+</script>
+</body>
+</html>

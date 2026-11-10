@@ -1,0 +1,13 @@
+# Anything that contains your handwriting stays out of git: this repository is public.
+photos/
+build/
+fonts/
+*.otf
+*.ttf
+*.npy
+*.png
+*.jpg
+*.jpeg
+*.pdf
+card.html
+__pycache__/

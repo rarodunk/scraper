@@ -1,0 +1,7 @@
+numpy
+opencv-python-headless>=4.7   # includes cv2.aruco for template corner markers
+scikit-image
+fonttools
+potracer                      # pure-Python potrace port (vectorises glyph bitmaps)
+reportlab                     # template PDF
+pillow
